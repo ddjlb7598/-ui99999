@@ -27,7 +27,7 @@ task.spawn(function()
 end)
 
 local Title1 = Instance.new('TextLabel', Main)
-Title1.Text = '陌漆.小迪共创脚本'
+Title1.Text = '陌柒.小迪共创脚本'
 Title1.TextSize = 40
 Title1.BackgroundTransparency = 1
 Title1.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -132,3 +132,4 @@ Main:Destroy()
 LoadMain:Destroy()
 
 LoadFillMain:Destroy()
+
