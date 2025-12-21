@@ -22,6 +22,7 @@ end
 
 local Tween = game:GetService('TweenService') 
 local ScriptScreen = Instance.new('ScreenGui', game.Players.LocalPlayer.PlayerGui)
+ScriptScreen.Name = "BaiMoScriptGUI"
 
 -- 根据VIP状态设置不同的颜色主题
 local VIP_COLORS = {
@@ -284,6 +285,162 @@ local function updateVIPLoadPercent(percent)
     end
 end
 
+-- ============ VIP自动关闭计时器 ============
+local AutoCloseTimer = nil
+local CountdownLabel = nil
+
+if isVIP then
+    -- 创建倒计时显示标签
+    CountdownLabel = Instance.new('TextLabel', Main)
+    CountdownLabel.Size = UDim2.new(0, 150, 0, 25)
+    CountdownLabel.Position = UDim2.new(0.5, -75, 0.95, 0)
+    CountdownLabel.BackgroundTransparency = 0.8
+    CountdownLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    CountdownLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+    CountdownLabel.Font = Enum.Font.GothamBold
+    CountdownLabel.TextSize = 14
+    CountdownLabel.Text = "自动关闭倒计时: 5秒"
+    CountdownLabel.Visible = false
+    
+    local CountdownCorner = Instance.new('UICorner', CountdownLabel)
+    CountdownCorner.CornerRadius = UDim.new(0.2, 0)
+    
+    local CountdownStroke = Instance.new('UIStroke', CountdownLabel)
+    CountdownStroke.Color = Color3.fromRGB(255, 215, 0)
+    CountdownStroke.Thickness = 2
+end
+
+-- VIP自动关闭函数
+local function startAutoCloseTimer(seconds)
+    if not isVIP then return end
+    
+    CountdownLabel.Visible = true
+    
+    local remainingTime = seconds
+    AutoCloseTimer = task.spawn(function()
+        while remainingTime > 0 and CountdownLabel and CountdownLabel.Parent do
+            CountdownLabel.Text = string.format("⏰ 自动关闭倒计时: %d秒", remainingTime)
+            
+            -- 最后3秒闪烁
+            if remainingTime <= 3 then
+                CountdownLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                CountdownLabel.BackgroundTransparency = 0.3 + math.sin(tick() * 10) * 0.3
+            end
+            
+            remainingTime -= 1
+            task.wait(1)
+        end
+        
+        if CountdownLabel and CountdownLabel.Parent then
+            -- 执行关闭动画
+            CountdownLabel.Text = "🎉 加载完成，正在关闭..."
+            CountdownLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            
+            -- VIP关闭特效
+            task.spawn(function()
+                for i = 1, 5 do
+                    CountdownLabel.BackgroundTransparency = 0.2 + math.sin(tick() * 20) * 0.3
+                    task.wait(0.05)
+                end
+            end)
+            
+            task.wait(0.5)
+            
+            -- 执行优雅的关闭动画
+            local fadeOutTime = 0.8
+            Tween:Create(Main, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 0, 0)
+            }):Play()
+            
+            Tween:Create(LoadMain, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 0, 0)
+            }):Play()
+            
+            Tween:Create(LoadFillMain, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 0, 0)
+            }):Play()
+            
+            Tween:Create(CountdownLabel, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                TextTransparency = 1
+            }):Play()
+            
+            -- 所有文本元素淡出
+            local textElements = {Title1, Title2, Title3, LoadState, VIPPrivilege}
+            for _, element in pairs(textElements) do
+                if element and element.Parent then
+                    Tween:Create(element, TweenInfo.new(fadeOutTime), {
+                        TextTransparency = 1
+                    }):Play()
+                end
+            end
+            
+            if VIPTag and VIPTag.Parent then
+                Tween:Create(VIPTag, TweenInfo.new(fadeOutTime), {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0, 0, 0, 0)
+                }):Play()
+            end
+            
+            -- 等待动画完成
+            task.wait(fadeOutTime + 0.1)
+            
+            -- 清理所有UI元素
+            Main:Destroy()
+            LoadMain:Destroy()
+            LoadFillMain:Destroy()
+            if CountdownLabel then CountdownLabel:Destroy() end
+            if VIPTag then VIPTag:Destroy() end
+            
+            print("[VIP系统] 界面已自动关闭")
+        end
+    end)
+end
+
+-- VIP手动跳过按钮
+local SkipButton = nil
+if isVIP then
+    SkipButton = Instance.new('TextButton', Main)
+    SkipButton.Size = UDim2.new(0, 120, 0, 35)
+    SkipButton.Position = UDim2.new(0.5, -60, 1.1, 0)
+    SkipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    SkipButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    SkipButton.Font = Enum.Font.GothamBold
+    SkipButton.TextSize = 14
+    SkipButton.Text = "⏭️ 立即跳过"
+    SkipButton.Visible = false
+    SkipButton.BorderSizePixel = 0
+    
+    local SkipCorner = Instance.new('UICorner', SkipButton)
+    SkipCorner.CornerRadius = UDim.new(0.2, 0)
+    
+    SkipButton.MouseButton1Click:Connect(function()
+        if AutoCloseTimer then
+            task.cancel(AutoCloseTimer)
+            AutoCloseTimer = nil
+        end
+        
+        -- 立即关闭特效
+        SkipButton.Text = "🎯 正在关闭..."
+        SkipButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        
+        -- 立即执行关闭动画
+        startAutoCloseTimer(0)
+    end)
+    
+    -- 按钮悬停效果
+    SkipButton.MouseEnter:Connect(function()
+        SkipButton.BackgroundColor3 = Color3.fromRGB(255, 230, 100)
+    end)
+    
+    SkipButton.MouseLeave:Connect(function()
+        SkipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    end)
+end
+
 -- ============ 加载动画序列 ============
 
 -- VIP用户有更快的加载速度
@@ -329,15 +486,17 @@ if isVIP then
         LoadState.TextColor3 = Color3.fromRGB(255, 255, 255)
         task.wait(0.1)
     end
-end
-
-task.wait(0.5)
-
--- VIP用户保留VIP徽章和部分元素，普通用户全部销毁
-if isVIP then
-    -- VIP用户保留徽章和完成状态
+    
     LoadState.Text = '🎊 迪脚本[BaiMo-Script] 已准备就绪'
     LoadState.TextColor3 = Color3.fromRGB(255, 215, 0)
+    
+    -- 显示跳过按钮
+    if SkipButton then
+        SkipButton.Visible = true
+        Tween:Create(SkipButton, TweenInfo.new(0.3), {
+            Position = UDim2.new(0.5, -60, 0.85, 0)
+        }):Play()
+    end
     
     -- VIP徽章缩小并移动到右上角
     Tween:Create(VIPTag, TweenInfo.new(0.5), {
@@ -345,29 +504,29 @@ if isVIP then
         Position = UDim2.new(1, -85, 0, 5)
     }):Play()
     
-    -- 其他元素淡出
-    Tween:Create(Title1, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-    Tween:Create(Title2, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-    Tween:Create(Title3, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-    Tween:Create(Main, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-    Tween:Create(LoadFillMain, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
-    Tween:Create(LoadMain, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    -- 启动自动关闭倒计时（5秒后自动关闭）
+    task.wait(1)  -- 等待1秒让用户看到完成状态
+    startAutoCloseTimer(5)
     
-    -- VIP用户保留状态文本
-    task.wait(1)
-    Tween:Create(LoadState, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-    task.wait(0.5)
-    LoadState:Destroy()
-    
-    -- VIP徽章最终保留在屏幕上
-    print("[VIP系统] VIP用户加载完成，徽章保留在屏幕上")
+    -- VIP完成音效
+    if game:GetService("SoundService") then
+        task.spawn(function()
+            local sound = Instance.new("Sound")
+            sound.SoundId = "rbxassetid://9118340725"  -- 完成音效
+            sound.Volume = 0.3
+            sound.Parent = game.Workspace
+            sound:Play()
+            game:GetService("Debris"):AddItem(sound, 3)
+        end)
+    end
 else
-    -- 普通用户全部销毁
+    -- 普通用户流程
+    task.wait(0.5)
     Title1:Destroy()
     Title2:Destroy()
     Title3:Destroy()
     LoadState:Destroy()
-    VIPTag:Destroy()
+    if VIPTag then VIPTag:Destroy() end
     
     Tween:Create(Main, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
     Tween:Create(LoadFillMain, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
@@ -385,4 +544,64 @@ print("迪脚本[BaiMo-Script] 加载系统")
 print("用户: " .. playerName)
 print("VIP状态: " .. (isVIP and "尊贵VIP用户" or "普通用户"))
 print("加载时间: " .. (isVIP and "加速完成" or "标准完成"))
+if isVIP then
+    print("自动关闭: 5秒后自动关闭界面")
+    print("操作提示: 可点击'立即跳过'按钮提前关闭")
+end
 print("=================================")
+
+-- VIP用户额外提示
+if isVIP then
+    -- 在聊天框发送VIP提示
+    task.spawn(function()
+        task.wait(3)
+        local message = "🎉 VIP加载完成! 脚本界面将在倒计时结束后自动关闭。"
+        if game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui") then
+            -- 创建一个通知
+            local notification = Instance.new("ScreenGui")
+            notification.Name = "VIPNotification"
+            notification.Parent = game:GetService("Players").LocalPlayer.PlayerGui
+            
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(0, 300, 0, 50)
+            frame.Position = UDim2.new(0.5, -150, 0.1, 0)
+            frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            frame.BackgroundTransparency = 0.3
+            frame.Parent = notification
+            
+            local corner = Instance.new("UICorner", frame)
+            corner.CornerRadius = UDim.new(0.1, 0)
+            
+            local stroke = Instance.new("UIStroke", frame)
+            stroke.Color = Color3.fromRGB(255, 215, 0)
+            stroke.Thickness = 2
+            
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, -20, 1, -10)
+            label.Position = UDim2.new(0, 10, 0, 5)
+            label.BackgroundTransparency = 1
+            label.Text = message
+            label.TextColor3 = Color3.fromRGB(255, 215, 0)
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 14
+            label.TextWrapped = true
+            label.Parent = frame
+            
+            -- 3秒后淡出
+            task.wait(3)
+            Tween:Create(frame, TweenInfo.new(1), {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0.5, -150, 0, -100)
+            }):Play()
+            Tween:Create(stroke, TweenInfo.new(1), {
+                Transparency = 1
+            }):Play()
+            Tween:Create(label, TweenInfo.new(1), {
+                TextTransparency = 1
+            }):Play()
+            
+            task.wait(1)
+            notification:Destroy()
+        end
+    end)
+end
