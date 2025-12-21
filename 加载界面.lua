@@ -7,7 +7,8 @@ local VIP_USERS = {
 }
 
 -- 获取当前玩家用户名
-local localPlayer = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
 local playerName = localPlayer.Name
 
 -- 检查是否为VIP用户
@@ -19,716 +20,588 @@ for _, vipName in ipairs(VIP_USERS) do
     end
 end
 
--- 1. 创建 UI 容器与文本标签
-local LBLG = Instance.new("ScreenGui")
-LBLG.Name = "LBLG"
-LBLG.Parent = game.CoreGui
-LBLG.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-LBLG.Enabled = true
+local Tween = game:GetService('TweenService') 
+local ScriptScreen = Instance.new('ScreenGui', game.Players.LocalPlayer.PlayerGui)
+ScriptScreen.Name = "BaiMoScriptGUI"
 
--- 核心：单UI容器，避免冗余
-local mainGui = Instance.new("ScreenGui")
-mainGui.Name = "VIPTimeDisplay"
-mainGui.Parent = game.CoreGui
-mainGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-mainGui.Enabled = true
-
--- 容器优化：尺寸自适应，布局更紧凑
-local container = Instance.new("Frame")
-container.Name = "Container"
-container.Parent = mainGui
-container.BackgroundTransparency = 1
-container.Position = UDim2.new(0.98, -5, 0.01, 5)
-container.AnchorPoint = Vector2.new(1, 0)
-container.Size = UDim2.new(0, 170, 0, 36)
-
--- 第一行：VIP时间显示（根据VIP状态显示不同内容）
-local vipLabel = Instance.new("TextLabel")
-vipLabel.Name = "VIPLabel"
-vipLabel.Parent = container
-vipLabel.BackgroundTransparency = 1
-vipLabel.Position = UDim2.new(0, 0, 0, 0)
-vipLabel.Size = UDim2.new(0, 75, 0, 18)
-vipLabel.Font = Enum.Font.GothamBold
-vipLabel.TextScaled = true
-vipLabel.TextSize = 9
-vipLabel.TextXAlignment = Enum.TextXAlignment.Right
-
--- 根据VIP状态设置不同的文本和颜色
-if isVIP then
-    vipLabel.Text = "金贵的VIP时间"
-    vipLabel.TextColor3 = Color3.fromRGB(255, 215, 0)  -- 金色
-else
-    vipLabel.Text = "非VIP用户"
-    vipLabel.TextColor3 = Color3.fromRGB(150, 150, 150)  -- 灰色
-end
-
--- 发光效果（只有VIP有发光效果）
-if isVIP then
-    local vipGlow = Instance.new("UIStroke")
-    vipGlow.Parent = vipLabel
-    vipGlow.Color = Color3.fromRGB(255, 230, 100)
-    vipGlow.Thickness = 1.2
-    vipGlow.Transparency = 0.5
-    vipGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-end
-
--- 时间标签（所有用户都显示）
-local timeLabel = Instance.new("TextLabel")
-timeLabel.Name = "TimeLabel"
-timeLabel.Parent = container
-timeLabel.BackgroundTransparency = 1
-timeLabel.Position = UDim2.new(0, 78, 0, 0)
-timeLabel.Size = UDim2.new(0, 85, 0, 18)
-timeLabel.Font = Enum.Font.GothamSemibold
-timeLabel.Text = os.date("%H:%M:%S")
-timeLabel.TextScaled = true
-timeLabel.TextSize = 8.5
-timeLabel.TextXAlignment = Enum.TextXAlignment.Left
-
--- 第二行：倒计时显示（所有用户都显示）
-local toLabel = Instance.new("TextLabel")
-toLabel.Name = "ToLabel"
-toLabel.Parent = container
-toLabel.BackgroundTransparency = 1
-toLabel.Position = UDim2.new(0, 0, 0, 18)
-toLabel.Size = UDim2.new(0, 12, 0, 18)
-toLabel.Font = Enum.Font.GothamSemibold
-toLabel.Text = "到"
-toLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-toLabel.TextScaled = true
-toLabel.TextSize = 8
-toLabel.TextXAlignment = Enum.TextXAlignment.Right
-
--- 目标事件标签（可自定义，所有用户都显示）
-local eventLabel = Instance.new("TextLabel")
-eventLabel.Name = "EventLabel"
-eventLabel.Parent = container
-eventLabel.BackgroundTransparency = 1
-eventLabel.Position = UDim2.new(0, 15, 0, 18)
-eventLabel.Size = UDim2.new(0, 45, 0, 18)
-eventLabel.Font = Enum.Font.GothamSemibold
-eventLabel.Text = "元旦"
-eventLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
-eventLabel.TextScaled = true
-eventLabel.TextSize = 8
-eventLabel.TextXAlignment = Enum.TextXAlignment.Left
-
--- "还有"标签（所有用户都显示）
-local leftLabel = Instance.new("TextLabel")
-leftLabel.Name = "LeftLabel"
-leftLabel.Parent = container
-leftLabel.BackgroundTransparency = 1
-leftLabel.Position = UDim2.new(0, 62, 0, 18)
-leftLabel.Size = UDim2.new(0, 25, 0, 18)
-leftLabel.Font = Enum.Font.GothamSemibold
-leftLabel.Text = "还有"
-leftLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-leftLabel.TextScaled = true
-leftLabel.TextSize = 8
-leftLabel.TextXAlignment = Enum.TextXAlignment.Right
-
--- 详细时间显示（所有用户都显示）
-local detailLabel = Instance.new("TextLabel")
-detailLabel.Name = "DetailLabel"
-detailLabel.Parent = container
-detailLabel.BackgroundTransparency = 1
-detailLabel.Position = UDim2.new(0, 90, 0, 18)
-detailLabel.Size = UDim2.new(0, 80, 0, 18)
-detailLabel.Font = Enum.Font.GothamBold
-detailLabel.Text = "计算中..."
-detailLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-detailLabel.TextScaled = true
-detailLabel.TextSize = 8
-detailLabel.TextXAlignment = Enum.TextXAlignment.Left
-
--- ============ 优化后的弹窗系统 ============
--- 创建弹窗背景（缩小尺寸）
-local popupBackground = Instance.new("Frame")
-popupBackground.Name = "PopupBackground"
-popupBackground.Parent = mainGui
-popupBackground.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-popupBackground.BackgroundTransparency = 0.8
-popupBackground.Size = UDim2.new(0, 280, 0, 160)
-popupBackground.Position = UDim2.new(0.5, -140, 0.5, -80)
-popupBackground.Visible = false
-popupBackground.ZIndex = 10
-popupBackground.AnchorPoint = Vector2.new(0.5, 0.5)
-
--- VIP弹窗（金色豪华效果）
-local vipPopup = Instance.new("Frame")
-vipPopup.Name = "VIPPopup"
-vipPopup.Parent = popupBackground
-vipPopup.Size = UDim2.new(1, 0, 1, 0)
-vipPopup.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-vipPopup.BorderSizePixel = 0
-vipPopup.Visible = isVIP  -- 只有VIP显示
-
--- VIP弹窗边框（金色流光）
-local vipBorder = Instance.new("UIStroke")
-vipBorder.Parent = vipPopup
-vipBorder.Color = Color3.fromRGB(255, 215, 0)
-vipBorder.Thickness = 2
-vipBorder.Transparency = 0.3
-
--- VIP弹窗标题
-local vipTitle = Instance.new("TextLabel")
-vipTitle.Name = "VIPTitle"
-vipTitle.Parent = vipPopup
-vipTitle.BackgroundTransparency = 1
-vipTitle.Size = UDim2.new(1, 0, 0, 30)
-vipTitle.Position = UDim2.new(0, 0, 0, 5)
-vipTitle.Font = Enum.Font.GothamBold
-vipTitle.Text = "✨ VIP 尊贵特权 ✨"
-vipTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
-vipTitle.TextSize = 16
-vipTitle.TextScaled = false
-
--- VIP弹窗内容（简化）
-local vipContent = Instance.new("TextLabel")
-vipContent.Name = "VIPContent"
-vipContent.Parent = vipPopup
-vipContent.BackgroundTransparency = 1
-vipContent.Size = UDim2.new(1, -20, 0, 70)
-vipContent.Position = UDim2.new(0, 10, 0, 40)
-vipContent.Font = Enum.Font.Gotham
-vipContent.Text = "特权已解锁：\n• 金色VIP标识\n• 彩虹倒计时特效\n• 弹窗发光动画"
-vipContent.TextColor3 = Color3.fromRGB(255, 255, 255)
-vipContent.TextSize = 12
-vipContent.TextWrapped = true
-vipContent.TextXAlignment = Enum.TextXAlignment.Left
-vipContent.TextYAlignment = Enum.TextYAlignment.Top
-
--- VIP弹窗按钮
-local vipButton = Instance.new("TextButton")
-vipButton.Name = "VIPButton"
-vipButton.Parent = vipPopup
-vipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-vipButton.Size = UDim2.new(0, 80, 0, 25)
-vipButton.Position = UDim2.new(0.5, -40, 0.85, 0)
-vipButton.Font = Enum.Font.GothamBold
-vipButton.Text = "朕知道了"
-vipButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-vipButton.TextSize = 12
-vipButton.BorderSizePixel = 0
-
--- 非VIP弹窗（普通效果）
-local nonVipPopup = Instance.new("Frame")
-nonVipPopup.Name = "NonVipPopup"
-nonVipPopup.Parent = popupBackground
-nonVipPopup.Size = UDim2.new(1, 0, 1, 0)
-nonVipPopup.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-nonVipPopup.BorderSizePixel = 0
-nonVipPopup.Visible = not isVIP  -- 非VIP显示
-
--- 非VIP弹窗边框（灰色）
-local nonVipBorder = Instance.new("UIStroke")
-nonVipBorder.Parent = nonVipPopup
-nonVipBorder.Color = Color3.fromRGB(120, 120, 120)
-nonVipBorder.Thickness = 1.5
-nonVipBorder.Transparency = 0.4
-
--- 非VIP弹窗标题
-local nonVipTitle = Instance.new("TextLabel")
-nonVipTitle.Name = "NonVipTitle"
-nonVipTitle.Parent = nonVipPopup
-nonVipTitle.BackgroundTransparency = 1
-nonVipTitle.Size = UDim2.new(1, 0, 0, 30)
-nonVipTitle.Position = UDim2.new(0, 0, 0, 5)
-nonVipTitle.Font = Enum.Font.Gotham
-nonVipTitle.Text = "普通用户提示"
-nonVipTitle.TextColor3 = Color3.fromRGB(180, 180, 180)
-nonVipTitle.TextSize = 14
-
--- 非VIP弹窗内容（简化）
-local nonVipContent = Instance.new("TextLabel")
-nonVipContent.Name = "NonVipContent"
-nonVipContent.Parent = nonVipPopup
-nonVipContent.BackgroundTransparency = 1
-nonVipContent.Size = UDim2.new(1, -20, 0, 70)
-nonVipContent.Position = UDim2.new(0, 10, 0, 40)
-nonVipContent.Font = Enum.Font.Gotham
-nonVipContent.Text = "当前可用功能：\n• 实时时间显示\n• 节日倒计时\n• 弹窗提示\n\n升级VIP可解锁炫酷特效"
-nonVipContent.TextColor3 = Color3.fromRGB(180, 180, 180)
-nonVipContent.TextSize = 11
-nonVipContent.TextWrapped = true
-nonVipContent.TextXAlignment = Enum.TextXAlignment.Left
-nonVipContent.TextYAlignment = Enum.TextYAlignment.Top
-
--- 非VIP弹窗按钮
-local nonVipButton = Instance.new("TextButton")
-nonVipButton.Name = "NonVipButton"
-nonVipButton.Parent = nonVipPopup
-nonVipButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-nonVipButton.Size = UDim2.new(0, 80, 0, 25)
-nonVipButton.Position = UDim2.new(0.5, -40, 0.85, 0)
-nonVipButton.Font = Enum.Font.Gotham
-nonVipButton.Text = "明白了"
-nonVipButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-nonVipButton.TextSize = 12
-nonVipButton.BorderSizePixel = 0
-
--- 弹窗圆角效果
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = popupBackground
-
-local vipCorner = Instance.new("UICorner")
-vipCorner.CornerRadius = UDim.new(0, 8)
-vipCorner.Parent = vipPopup
-
-local nonVipCorner = Instance.new("UICorner")
-nonVipCorner.CornerRadius = UDim.new(0, 8)
-nonVipCorner.Parent = nonVipPopup
-
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 5)
-buttonCorner.Parent = vipButton
-buttonCorner:Clone().Parent = nonVipButton
-
--- VIP弹窗按钮点击事件
-vipButton.MouseButton1Click:Connect(function()
-    popupBackground.Visible = false
-end)
-
--- 非VIP弹窗按钮点击事件
-nonVipButton.MouseButton1Click:Connect(function()
-    popupBackground.Visible = false
-end)
-
--- 弹窗显示函数（简化动画）
-local function showPopup()
-    popupBackground.Visible = true
-    popupBackground.Size = UDim2.new(0, 10, 0, 10)
-    popupBackground.Position = UDim2.new(0.5, -5, 0.5, -5)
-    
-    -- 展开动画
-    for i = 1, 10 do
-        popupBackground.Size = UDim2.new(0, 10 + i * 27, 0, 10 + i * 15)
-        popupBackground.Position = UDim2.new(0.5, 0, 0.5, 0)
-        task.wait(0.01)
-    end
-    
-    -- VIP用户的额外闪烁效果
-    if isVIP then
-        task.spawn(function()
-            while popupBackground.Visible and isVIP do
-                vipBorder.Transparency = 0.3 + math.sin(tick() * 3) * 0.2
-                task.wait(0.05)
-            end
-        end)
-    end
-end
-
--- ============ 新增：对局玩家检测系统 ============
-local Players = game:GetService("Players")
-local playerListGui = Instance.new("ScreenGui")
-playerListGui.Name = "PlayerListGUI"
-playerListGui.Parent = game.CoreGui
-playerListGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
--- 玩家列表容器（右上角）
-local playerListContainer = Instance.new("Frame")
-playerListContainer.Name = "PlayerListContainer"
-playerListContainer.Parent = playerListGui
-playerListContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-playerListContainer.BackgroundTransparency = 0.1
-playerListContainer.BorderSizePixel = 0
-playerListContainer.Position = UDim2.new(0.98, -200, 0.01, 45)
-playerListContainer.AnchorPoint = Vector2.new(1, 0)
-playerListContainer.Size = UDim2.new(0, 195, 0, 30)
-playerListContainer.Visible = false  -- 默认隐藏，需要时显示
-
--- 圆角
-local listCorner = Instance.new("UICorner")
-listCorner.CornerRadius = UDim.new(0, 6)
-listCorner.Parent = playerListContainer
-
--- 边框
-local listBorder = Instance.new("UIStroke")
-listBorder.Parent = playerListContainer
-listBorder.Color = Color3.fromRGB(60, 60, 80)
-listBorder.Thickness = 1.5
-
--- 标题栏
-local listTitle = Instance.new("TextLabel")
-listTitle.Name = "ListTitle"
-listTitle.Parent = playerListContainer
-listTitle.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-listTitle.Size = UDim2.new(1, 0, 0, 25)
-listTitle.Font = Enum.Font.GothamBold
-listTitle.Text = "对局玩家检测"
-listTitle.TextColor3 = Color3.fromRGB(220, 220, 220)
-listTitle.TextSize = 12
-listTitle.TextXAlignment = Enum.TextXAlignment.Center
-
--- 标题栏圆角（仅顶部）
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 6)
-titleCorner.Parent = listTitle
-
--- 玩家列表滚动框
-local playerListScrolling = Instance.new("ScrollingFrame")
-playerListScrolling.Name = "PlayerListScrolling"
-playerListScrolling.Parent = playerListContainer
-playerListScrolling.BackgroundTransparency = 1
-playerListScrolling.Position = UDim2.new(0, 0, 0, 25)
-playerListScrolling.Size = UDim2.new(1, 0, 1, -25)
-playerListScrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
-playerListScrolling.ScrollBarThickness = 4
-playerListScrolling.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
-
--- 玩家列表UI列表布局
-local playerListUIList = Instance.new("UIListLayout")
-playerListUIList.Parent = playerListScrolling
-playerListUIList.SortOrder = Enum.SortOrder.Name
-playerListUIList.Padding = UDim.new(0, 2)
-
--- 显示/隐藏玩家列表的按钮
-local toggleListButton = Instance.new("TextButton")
-toggleListButton.Name = "ToggleListButton"
-toggleListButton.Parent = mainGui
-toggleListButton.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-toggleListButton.BackgroundTransparency = 0.1
-toggleListButton.Position = UDim2.new(0.98, -35, 0.01, 45)
-toggleListButton.AnchorPoint = Vector2.new(1, 0)
-toggleListButton.Size = UDim2.new(0, 30, 0, 30)
-toggleListButton.Font = Enum.Font.GothamBold
-toggleListButton.Text = "👥"
-toggleListButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-toggleListButton.TextSize = 14
-toggleListButton.BorderSizePixel = 0
-
--- 按钮圆角和边框
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 6)
-toggleCorner.Parent = toggleListButton
-
-local toggleBorder = Instance.new("UIStroke")
-toggleBorder.Parent = toggleListButton
-toggleBorder.Color = Color3.fromRGB(60, 60, 80)
-toggleBorder.Thickness = 1.5
-
--- 玩家列表切换功能
-local isListVisible = false
-toggleListButton.MouseButton1Click:Connect(function()
-    isListVisible = not isListVisible
-    playerListContainer.Visible = isListVisible
-    toggleListButton.BackgroundColor3 = isListVisible and Color3.fromRGB(45, 45, 65) or Color3.fromRGB(35, 35, 45)
-    
-    if isListVisible then
-        updatePlayerList()
-    end
-end)
-
--- 更新玩家列表函数
-function updatePlayerList()
-    -- 清空现有列表
-    for _, child in ipairs(playerListScrolling:GetChildren()) do
-        if child:IsA("Frame") then
-            child:Destroy()
-        end
-    end
-    
-    local players = Players:GetPlayers()
-    local vipCount = 0
-    local totalCount = #players
-    
-    -- 为每个玩家创建显示项
-    for _, player in ipairs(players) do
-        local isPlayerVIP = false
-        
-        -- 检查是否为VIP
-        for _, vipName in ipairs(VIP_USERS) do
-            if vipName == player.Name then
-                isPlayerVIP = true
-                vipCount = vipCount + 1
-                break
-            end
-        end
-        
-        local playerItem = Instance.new("Frame")
-        playerItem.Name = player.Name
-        playerItem.Parent = playerListScrolling
-        playerItem.BackgroundTransparency = 1
-        playerItem.Size = UDim2.new(1, -10, 0, 20)
-        
-        local playerColor = Instance.new("Frame")
-        playerColor.Name = "ColorIndicator"
-        playerColor.Parent = playerItem
-        playerColor.BackgroundColor3 = isPlayerVIP and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(100, 100, 120)
-        playerColor.Size = UDim2.new(0, 4, 1, 0)
-        playerColor.BorderSizePixel = 0
-        
-        local playerNameLabel = Instance.new("TextLabel")
-        playerNameLabel.Name = "PlayerName"
-        playerNameLabel.Parent = playerItem
-        playerNameLabel.BackgroundTransparency = 1
-        playerNameLabel.Position = UDim2.new(0, 8, 0, 0)
-        playerNameLabel.Size = UDim2.new(0.6, -8, 1, 0)
-        playerNameLabel.Font = Enum.Font.Gotham
-        playerNameLabel.Text = player.Name
-        playerNameLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-        playerNameLabel.TextSize = 11
-        playerNameLabel.TextXAlignment = Enum.TextXAlignment.Left
-        playerNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
-        
-        local playerStatusLabel = Instance.new("TextLabel")
-        playerStatusLabel.Name = "PlayerStatus"
-        playerStatusLabel.Parent = playerItem
-        playerStatusLabel.BackgroundTransparency = 1
-        playerStatusLabel.Position = UDim2.new(0.6, 5, 0, 0)
-        playerStatusLabel.Size = UDim2.new(0.4, -5, 1, 0)
-        playerStatusLabel.Font = Enum.Font.Gotham
-        playerStatusLabel.Text = isPlayerVIP and "VIP会员" or "未使用脚本"
-        playerStatusLabel.TextColor3 = isPlayerVIP and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(150, 150, 150)
-        playerStatusLabel.TextSize = 10
-        playerStatusLabel.TextXAlignment = Enum.TextXAlignment.Right
-    end
-    
-    -- 更新标题显示统计信息
-    listTitle.Text = string.format("玩家检测 (VIP: %d/%d)", vipCount, totalCount)
-    
-    -- 更新滚动区域大小
-    playerListScrolling.CanvasSize = UDim2.new(0, 0, 0, playerListUIList.AbsoluteContentSize.Y)
-    
-    -- 调整容器高度（最多显示10个玩家）
-    local maxHeight = math.min(totalCount * 22 + 25, 10 * 22 + 25)
-    playerListContainer.Size = UDim2.new(0, 195, 0, maxHeight)
-end
-
--- 监听玩家加入/离开事件
-Players.PlayerAdded:Connect(function(player)
-    if isListVisible then
-        updatePlayerList()
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-    if isListVisible then
-        task.wait(0.5) -- 等待玩家完全离开
-        updatePlayerList()
-    end
-end)
-
--- 点击容器显示弹窗
-container.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        showPopup()
-    end
-end)
-
--- ============ 彩虹颜色逻辑 ============
-local Hue = 0
-local function HSVToRGB(h, s, v)
-    local r, g, b
-    local i = math.floor(h * 6)
-    local f = h * 6 - i
-    local p = v * (1 - s)
-    local q = v * (1 - f * s)
-    local t = v * (1 - (1 - f) * s)
-    
-    i = i % 6
-    if i == 0 then r, g, b = v, t, p
-    elseif i == 1 then r, g, b = q, v, p
-    elseif i == 2 then r, g, b = p, v, t
-    elseif i == 3 then r, g, b = p, q, v
-    elseif i == 4 then r, g, b = t, p, v
-    else r, g, b = v, p, q end
-    
-    return Color3.new(r, g, b)
-end
-
--- 中国节日数据库
-local ChineseFestivals = {
-    {name = "元旦", month = 1, day = 1, color = Color3.fromRGB(255, 100, 100)},
-    {name = "春节", month = 1, day = 29, color = Color3.fromRGB(255, 215, 0)},
-    {name = "元宵节", month = 2, day = 12, color = Color3.fromRGB(255, 150, 200)},
-    {name = "清明节", month = 4, day = 4, color = Color3.fromRGB(100, 255, 100)},
-    {name = "劳动节", month = 5, day = 1, color = Color3.fromRGB(255, 100, 100)},
-    {name = "端午节", month = 5, day = 31, color = Color3.fromRGB(255, 100, 100)},
-    {name = "中秋节", month = 9, day = 29, color = Color3.fromRGB(255, 215, 0)},
-    {name = "国庆节", month = 10, day = 1, color = Color3.fromRGB(255, 100, 100)},
-    {name = "情人节", month = 2, day = 14, color = Color3.fromRGB(255, 150, 200)},
-    {name = "圣诞节", month = 12, day = 25, color = Color3.fromRGB(255, 100, 100)},
-    {name = "生日", month = 8, day = 15, color = Color3.fromRGB(0, 200, 255)},
+-- 根据VIP状态设置不同的颜色主题
+local VIP_COLORS = {
+    Background = isVIP and Color3.new(0.1, 0.05, 0.15) or Color3.new(0, 0, 0),
+    Gradient1 = isVIP and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 150, 255),
+    Gradient2 = isVIP and Color3.fromRGB(255, 150, 0) or Color3.fromRGB(0, 255, 255),
+    TextColor = isVIP and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(255, 255, 255),
+    VIPBadgeColor = Color3.fromRGB(255, 215, 0),
+    NormalBadgeColor = Color3.fromRGB(150, 150, 150)
 }
 
--- 获取下一个节日
-local function getNextFestival()
-    local currentTime = os.time()
-    local currentYear = tonumber(os.date("%Y", currentTime))
-    local nextFestival = nil
-    local minDiff = math.huge
-    
-    for _, festival in ipairs(ChineseFestivals) do
-        local festivalTime = os.time({
-            year = currentYear,
-            month = festival.month,
-            day = festival.day,
-            hour = 0,
-            min = 0,
-            sec = 0
-        })
-        
-        if festivalTime < currentTime then
-            festivalTime = os.time({
-                year = currentYear + 1,
-                month = festival.month,
-                day = festival.day,
-                hour = 0,
-                min = 0,
-                sec = 0
-            })
+-- 创建主框架
+local Main = Instance.new('Frame', ScriptScreen)
+Main.BackgroundTransparency = 0.5
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.new(0.5, 0, 0.4, 0)
+Main.Name = 'Main'
+Main.BackgroundColor3 = VIP_COLORS.Background
+Main.Size = UDim2.new(0, 500, 0, 300)
+
+local MainC = Instance.new('UICorner', Main)
+MainC.CornerRadius = UDim.new(0.05, 0)
+
+local MainS = Instance.new('UIStroke', Main)
+MainS.Color = Color3.fromRGB(255, 255, 255)
+MainS.Thickness = 3
+
+-- 流光边框效果
+local gradient1 = Instance.new('UIGradient', MainS)
+gradient1.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, VIP_COLORS.Gradient1),
+    ColorSequenceKeypoint.new(1, VIP_COLORS.Gradient2)
+}
+
+-- VIP专属边框闪烁效果
+if isVIP then
+    task.spawn(function()
+        while Main and Main.Parent do
+            gradient1.Rotation += 3  -- VIP旋转更快
+            -- VIP边框闪烁
+            MainS.Transparency = 0.3 + math.sin(tick() * 2) * 0.2
+            task.wait()
         end
-        
-        local diff = festivalTime - currentTime
-        
-        if diff < minDiff and diff > 0 then
-            minDiff = diff
-            nextFestival = {
-                name = festival.name,
-                time = festivalTime,
-                color = festival.color
-            }
+    end)
+else
+    task.spawn(function()
+        while Main and Main.Parent do
+            gradient1.Rotation += 1  -- 普通用户旋转较慢
+            task.wait()
         end
-    end
-    
-    return nextFestival
+    end)
 end
 
--- VIP闪烁动画（只有VIP用户有动画）
-local function vipPulseAnimation()
-    while task.wait() and vipLabel and vipLabel.Parent do
-        if isVIP then
-            local pulse = 0.4 + math.sin(tick() * 1.8) * 0.08
-            for _, child in ipairs(vipLabel:GetChildren()) do
-                if child:IsA("UIStroke") then
-                    child.Transparency = pulse
+-- VIP标识（徽章）
+local VIPTag = Instance.new('Frame', Main)
+VIPTag.BackgroundColor3 = VIP_COLORS.VIPBadgeColor
+VIPTag.Size = UDim2.new(0, 100, 0, 30)
+VIPTag.Position = UDim2.new(1, -110, 0, 10)
+VIPTag.BackgroundTransparency = isVIP and 0.2 or 0.7
+VIPTag.Name = 'VIPTag'
+
+local VIPTagCorner = Instance.new('UICorner', VIPTag)
+VIPTagCorner.CornerRadius = UDim.new(0.2, 0)
+
+local VIPTagStroke = Instance.new('UIStroke', VIPTag)
+VIPTagStroke.Color = isVIP and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(150, 150, 150)
+VIPTagStroke.Thickness = 2
+
+local VIPTagLabel = Instance.new('TextLabel', VIPTag)
+VIPTagLabel.Size = UDim2.new(1, 0, 1, 0)
+VIPTagLabel.BackgroundTransparency = 1
+VIPTagLabel.Text = isVIP and "✨ VIP用户 ✨" or "普通用户"
+VIPTagLabel.TextColor3 = isVIP and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(150, 150, 150)
+VIPTagLabel.Font = Enum.Font.GothamBold
+VIPTagLabel.TextSize = 14
+VIPTagLabel.TextScaled = true
+
+-- VIP专属徽章动画
+if isVIP then
+    task.spawn(function()
+        while VIPTag and VIPTag.Parent do
+            VIPTagStroke.Transparency = 0.3 + math.sin(tick() * 3) * 0.3
+            VIPTag.BackgroundTransparency = 0.2 + math.sin(tick() * 2) * 0.15
+            task.wait()
+        end
+    end)
+end
+
+-- 标题
+local Title1 = Instance.new('TextLabel', Main)
+Title1.Text = '陌柒.小迪共创脚本'
+Title1.TextSize = 40
+Title1.BackgroundTransparency = 1
+Title1.TextColor3 = VIP_COLORS.TextColor
+Title1.AnchorPoint = Vector2.new(0.5, 0.5)
+Title1.Position = UDim2.new(0.5, 0, 0.3, 0)
+Title1.Font = Enum.Font.GothamBold
+
+-- VIP专属标题效果
+if isVIP then
+    task.spawn(function()
+        while Title1 and Title1.Parent do
+            Title1.TextColor3 = Color3.fromHSV(math.sin(tick() * 0.5) * 0.5 + 0.5, 0.8, 1)
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- 玩家欢迎语
+local Title2 = Instance.new('TextLabel', Main)
+Title2.Text = '尊贵的' .. (isVIP and 'VIP玩家 ' or '玩家 ') .. game.Players.LocalPlayer.Name
+Title2.TextSize = 22
+Title2.BackgroundTransparency = 1
+Title2.TextColor3 = VIP_COLORS.TextColor
+Title2.AnchorPoint = Vector2.new(0.5, 0.5)
+Title2.Position = UDim2.new(0.5, 0, 0.5, 0)
+Title2.Font = isVIP and Enum.Font.GothamBold or Enum.Font.Gotham
+
+-- VIP用户显示额外特权信息
+if isVIP then
+    local VIPPrivilege = Instance.new('TextLabel', Main)
+    VIPPrivilege.Text = '🎁 尊享VIP特权 | ⚡ 极速加载 | 🌟 专属效果'
+    VIPPrivilege.TextSize = 16
+    VIPPrivilege.BackgroundTransparency = 1
+    VIPPrivilege.TextColor3 = Color3.fromRGB(255, 215, 0)
+    VIPPrivilege.AnchorPoint = Vector2.new(0.5, 0.5)
+    VIPPrivilege.Position = UDim2.new(0.5, 0, 0.6, 0)
+    VIPPrivilege.Font = Enum.Font.Gotham
+    
+    -- 特权信息闪烁效果
+    task.spawn(function()
+        while VIPPrivilege and VIPPrivilege.Parent do
+            VIPPrivilege.TextTransparency = 0.2 + math.sin(tick() * 2) * 0.3
+            task.wait(0.1)
+        end
+    end)
+end
+
+local Title3 = Instance.new('TextLabel', Main)
+Title3.Text = isVIP and '欢迎使用VIP专属版迪脚本[BaiMo-Script]' or '欢迎使用迪脚本[BaiMo-Script]'
+Title3.TextSize = 20
+Title3.BackgroundTransparency = 1
+Title3.TextColor3 = VIP_COLORS.TextColor
+Title3.AnchorPoint = Vector2.new(0.5, 0.5)
+Title3.Position = isVIP and UDim2.new(0.5, 0, 0.7, 0) or UDim2.new(0.5, 0, 0.75, 0)
+Title3.Font = isVIP and Enum.Font.GothamBold or Enum.Font.Gotham
+
+-- 加载条主框架
+local LoadMain = Instance.new('Frame', ScriptScreen)
+LoadMain.BackgroundTransparency = 0.5
+LoadMain.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadMain.Position = UDim2.new(0.5, 0, isVIP and 0.8 or 0.66, 0)
+LoadMain.Name = 'LoadMain'
+LoadMain.BackgroundColor3 = VIP_COLORS.Background
+LoadMain.Size = isVIP and UDim2.new(0, 450, 0, 40) or UDim2.new(0, 500, 0, 50)
+
+local LoadMainC = Instance.new('UICorner', LoadMain)
+LoadMainC.CornerRadius = UDim.new(0.08, 0)
+
+local LoadMainS = Instance.new('UIStroke', LoadMain)
+LoadMainS.Color = Color3.fromRGB(255, 255, 255)
+LoadMainS.Thickness = 3
+
+local gradient2 = Instance.new('UIGradient', LoadMainS)
+gradient2.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, VIP_COLORS.Gradient1),
+    ColorSequenceKeypoint.new(1, VIP_COLORS.Gradient2)
+}
+
+-- 加载条边框动画
+if isVIP then
+    task.spawn(function()
+        while LoadMain and LoadMain.Parent do
+            gradient2.Rotation += 2
+            LoadMainS.Transparency = 0.2 + math.sin(tick() * 2.5) * 0.2
+            task.wait()
+        end
+    end)
+else
+    task.spawn(function()
+        while LoadMain and LoadMain.Parent do
+            gradient2.Rotation += 1
+            task.wait()
+        end
+    end)
+end
+
+-- 加载填充条
+local LoadFillMain = Instance.new('Frame', LoadMain)
+LoadFillMain.BackgroundTransparency = 0.5
+LoadFillMain.Name = 'LoadMain'
+LoadFillMain.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+LoadFillMain.Size = UDim2.new(0, 0, 1, 0)
+
+local LoadFillMainC = Instance.new('UICorner', LoadFillMain)
+LoadFillMainC.CornerRadius = UDim.new(0.08, 0)
+
+local gradient3 = Instance.new('UIGradient', LoadFillMain)
+gradient3.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, VIP_COLORS.Gradient1),
+    ColorSequenceKeypoint.new(1, VIP_COLORS.Gradient2)
+}
+
+-- VIP用户填充条渐变旋转
+if isVIP then
+    task.spawn(function()
+        while LoadFillMain and LoadFillMain.Parent do
+            gradient3.Rotation += 3
+            task.wait()
+        end
+    end)
+else
+    task.spawn(function()
+        while LoadFillMain and LoadFillMain.Parent do
+            gradient3.Rotation += 1
+            task.wait()
+        end
+    end)
+end
+
+-- 状态文本
+local LoadState = Instance.new('TextLabel', Main)
+LoadState.Text = isVIP and '🌟 VIP专属加速加载中...' or '正在加载玩家信息...'
+LoadState.TextSize = 18
+LoadState.BackgroundTransparency = 1
+LoadState.TextColor3 = VIP_COLORS.TextColor
+LoadState.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadState.Position = isVIP and UDim2.new(0.5, 0, 0.9, 0) or UDim2.new(0.5, 0, 1.3, 0)
+LoadState.Font = isVIP and Enum.Font.GothamBold or Enum.Font.Gotham
+
+-- VIP用户状态文本闪烁效果
+if isVIP then
+    task.spawn(function()
+        while LoadState and LoadState.Parent do
+            LoadState.TextTransparency = 0.1 + math.sin(tick() * 2) * 0.2
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- VIP用户显示加载百分比
+local LoadPercent = nil
+if isVIP then
+    LoadPercent = Instance.new('TextLabel', LoadMain)
+    LoadPercent.Size = UDim2.new(1, 0, 1, 0)
+    LoadPercent.BackgroundTransparency = 1
+    LoadPercent.Text = '0%'
+    LoadPercent.TextColor3 = Color3.fromRGB(255, 255, 255)
+    LoadPercent.Font = Enum.Font.GothamBold
+    LoadPercent.TextSize = 16
+    LoadPercent.TextStrokeTransparency = 0.5
+end
+
+-- VIP加载进度更新函数
+local function updateVIPLoadPercent(percent)
+    if isVIP and LoadPercent then
+        LoadPercent.Text = math.floor(percent * 100) .. '%'
+        -- VIP百分比颜色渐变
+        LoadPercent.TextColor3 = Color3.fromHSV(percent * 0.3, 0.8, 1)
+    end
+end
+
+-- ============ VIP自动关闭计时器 ============
+local AutoCloseTimer = nil
+local CountdownLabel = nil
+
+if isVIP then
+    -- 创建倒计时显示标签
+    CountdownLabel = Instance.new('TextLabel', Main)
+    CountdownLabel.Size = UDim2.new(0, 150, 0, 25)
+    CountdownLabel.Position = UDim2.new(0.5, -75, 0.95, 0)
+    CountdownLabel.BackgroundTransparency = 0.8
+    CountdownLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    CountdownLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+    CountdownLabel.Font = Enum.Font.GothamBold
+    CountdownLabel.TextSize = 14
+    CountdownLabel.Text = "自动关闭倒计时: 5秒"
+    CountdownLabel.Visible = false
+    
+    local CountdownCorner = Instance.new('UICorner', CountdownLabel)
+    CountdownCorner.CornerRadius = UDim.new(0.2, 0)
+    
+    local CountdownStroke = Instance.new('UIStroke', CountdownLabel)
+    CountdownStroke.Color = Color3.fromRGB(255, 215, 0)
+    CountdownStroke.Thickness = 2
+end
+
+-- VIP自动关闭函数
+local function startAutoCloseTimer(seconds)
+    if not isVIP then return end
+    
+    CountdownLabel.Visible = true
+    
+    local remainingTime = seconds
+    AutoCloseTimer = task.spawn(function()
+        while remainingTime > 0 and CountdownLabel and CountdownLabel.Parent do
+            CountdownLabel.Text = string.format("⏰ 自动关闭倒计时: %d秒", remainingTime)
+            
+            -- 最后3秒闪烁
+            if remainingTime <= 3 then
+                CountdownLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+                CountdownLabel.BackgroundTransparency = 0.3 + math.sin(tick() * 10) * 0.3
+            end
+            
+            remainingTime -= 1
+            task.wait(1)
+        end
+        
+        if CountdownLabel and CountdownLabel.Parent then
+            -- 执行关闭动画
+            CountdownLabel.Text = "🎉 加载完成，正在关闭..."
+            CountdownLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            
+            -- VIP关闭特效
+            task.spawn(function()
+                for i = 1, 5 do
+                    CountdownLabel.BackgroundTransparency = 0.2 + math.sin(tick() * 20) * 0.3
+                    task.wait(0.05)
+                end
+            end)
+            
+            task.wait(0.5)
+            
+            -- 执行优雅的关闭动画
+            local fadeOutTime = 0.8
+            Tween:Create(Main, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 0, 0)
+            }):Play()
+            
+            Tween:Create(LoadMain, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 0, 0)
+            }):Play()
+            
+            Tween:Create(LoadFillMain, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 0, 0)
+            }):Play()
+            
+            Tween:Create(CountdownLabel, TweenInfo.new(fadeOutTime), {
+                BackgroundTransparency = 1,
+                TextTransparency = 1
+            }):Play()
+            
+            -- 所有文本元素淡出
+            local textElements = {Title1, Title2, Title3, LoadState, VIPPrivilege}
+            for _, element in pairs(textElements) do
+                if element and element.Parent then
+                    Tween:Create(element, TweenInfo.new(fadeOutTime), {
+                        TextTransparency = 1
+                    }):Play()
                 end
             end
-            vipLabel.TextTransparency = 0.15 + math.abs(math.sin(tick() * 3.5)) * 0.08
-        else
-            vipLabel.TextTransparency = 0
-        end
-        task.wait(0.05)
-    end
-end
-
--- 计算目标时间
-local function getNextTargetTime()
-    local nextFestival = getNextFestival()
-    if nextFestival then
-        eventLabel.TextColor3 = nextFestival.color
-        eventLabel.Text = nextFestival.name
-        return nextFestival.time
-    end
-    
-    local currentTime = os.time()
-    local currentYear = tonumber(os.date("%Y", currentTime))
-    eventLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-    eventLabel.Text = "元旦"
-    return os.time({
-        year = currentYear + 1,
-        month = 1,
-        day = 1,
-        hour = 0,
-        min = 0,
-        sec = 0
-    })
-end
-
--- 时间格式化函数
-local function formatTime(seconds)
-    if seconds <= 0 then return "已到" end
-    
-    local days = math.floor(seconds / 86400)
-    local hours = math.floor((seconds % 86400) / 3600)
-    local minutes = math.floor((seconds % 3600) / 60)
-    local secs = math.floor(seconds % 60)
-    
-    if days > 0 then
-        return string.format("%d天%d时", days, hours)
-    elseif hours > 0 then
-        return string.format("%d时%d分", hours, minutes)
-    else
-        return string.format("%d分%d秒", minutes, secs)
-    end
-end
-
--- 获取目标时间
-local targetTime = getNextTargetTime()
-
--- 更新时间显示
-local function updateTime()
-    while task.wait() and timeLabel and detailLabel and timeLabel.Parent do
-        timeLabel.Text = os.date("%H:%M:%S")
-        
-        local currentTime = os.time()
-        local timeDiff = targetTime - currentTime
-        
-        if timeDiff > 0 then
-            detailLabel.Text = formatTime(timeDiff)
             
-            if isVIP then
-                Hue = (Hue + 0.001) % 1
-                detailLabel.TextColor3 = HSVToRGB(Hue, 0.8, 1)
-            else
-                detailLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            if VIPTag and VIPTag.Parent then
+                Tween:Create(VIPTag, TweenInfo.new(fadeOutTime), {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0, 0, 0, 0)
+                }):Play()
             end
-        else
-            detailLabel.Text = "已到"
-            detailLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
             
-            task.wait(1)
-            targetTime = getNextTargetTime()
+            -- 等待动画完成
+            task.wait(fadeOutTime + 0.1)
+            
+            -- 清理所有UI元素
+            Main:Destroy()
+            LoadMain:Destroy()
+            LoadFillMain:Destroy()
+            if CountdownLabel then CountdownLabel:Destroy() end
+            if VIPTag then VIPTag:Destroy() end
+            
+            print("[VIP系统] 界面已自动关闭")
+        end
+    end)
+end
+
+-- VIP手动跳过按钮
+local SkipButton = nil
+if isVIP then
+    SkipButton = Instance.new('TextButton', Main)
+    SkipButton.Size = UDim2.new(0, 120, 0, 35)
+    SkipButton.Position = UDim2.new(0.5, -60, 1.1, 0)
+    SkipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    SkipButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    SkipButton.Font = Enum.Font.GothamBold
+    SkipButton.TextSize = 14
+    SkipButton.Text = "⏭️ 立即跳过"
+    SkipButton.Visible = false
+    SkipButton.BorderSizePixel = 0
+    
+    local SkipCorner = Instance.new('UICorner', SkipButton)
+    SkipCorner.CornerRadius = UDim.new(0.2, 0)
+    
+    SkipButton.MouseButton1Click:Connect(function()
+        if AutoCloseTimer then
+            task.cancel(AutoCloseTimer)
+            AutoCloseTimer = nil
         end
         
+        -- 立即关闭特效
+        SkipButton.Text = "🎯 正在关闭..."
+        SkipButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+        
+        -- 立即执行关闭动画
+        startAutoCloseTimer(0)
+    end)
+    
+    -- 按钮悬停效果
+    SkipButton.MouseEnter:Connect(function()
+        SkipButton.BackgroundColor3 = Color3.fromRGB(255, 230, 100)
+    end)
+    
+    SkipButton.MouseLeave:Connect(function()
+        SkipButton.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+    end)
+end
+
+-- ============ 加载动画序列 ============
+
+-- VIP用户有更快的加载速度
+local loadTimeMultiplier = isVIP and 0.8 or 1  -- VIP加载速度提升20%
+
+-- 第一阶段加载
+task.wait(0.5)
+Tween:Create(LoadFillMain, TweenInfo.new(1 * loadTimeMultiplier), {Size = UDim2.new(0.2, 0, 1, 0)}):Play()
+updateVIPLoadPercent(0.2)
+
+-- VIP用户特殊音效（可选）
+if isVIP and game:GetService("SoundService") then
+    task.spawn(function()
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://3570574687"  -- VIP加载音效
+        sound.Volume = 0.2
+        sound.Parent = game.Workspace
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 3)
+    end)
+end
+
+task.wait(1 * loadTimeMultiplier)
+LoadState.Text = isVIP and '✨ 正在加载VIP专属界面...' or '正在加载脚本界面...'
+Tween:Create(LoadFillMain, TweenInfo.new(0.7 * loadTimeMultiplier), {Size = UDim2.new(0.5, 0, 1, 0)}):Play()
+updateVIPLoadPercent(0.5)
+
+task.wait(0.7 * loadTimeMultiplier)
+LoadState.Text = isVIP and '⚡ 正在加载VIP特权项目...' or '正在加载项目...'
+Tween:Create(LoadFillMain, TweenInfo.new(0.6 * loadTimeMultiplier), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+updateVIPLoadPercent(1)
+
+task.wait(0.7 * loadTimeMultiplier)
+LoadState.Text = isVIP and '🎉 VIP加载完成! 欢迎尊贵用户!' or '加载完成!'
+updateVIPLoadPercent(1)
+
+-- VIP用户完成特效
+if isVIP then
+    -- VIP完成闪烁效果
+    for i = 1, 3 do
+        LoadState.TextColor3 = Color3.fromRGB(255, 215, 0)
+        task.wait(0.1)
+        LoadState.TextColor3 = Color3.fromRGB(255, 255, 255)
         task.wait(0.1)
     end
+    
+    LoadState.Text = '🎊 迪脚本[BaiMo-Script] 已准备就绪'
+    LoadState.TextColor3 = Color3.fromRGB(255, 215, 0)
+    
+    -- 显示跳过按钮
+    if SkipButton then
+        SkipButton.Visible = true
+        Tween:Create(SkipButton, TweenInfo.new(0.3), {
+            Position = UDim2.new(0.5, -60, 0.85, 0)
+        }):Play()
+    end
+    
+    -- VIP徽章缩小并移动到右上角
+    Tween:Create(VIPTag, TweenInfo.new(0.5), {
+        Size = UDim2.new(0, 80, 0, 25),
+        Position = UDim2.new(1, -85, 0, 5)
+    }):Play()
+    
+    -- 启动自动关闭倒计时（5秒后自动关闭）
+    task.wait(1)  -- 等待1秒让用户看到完成状态
+    startAutoCloseTimer(5)
+    
+    -- VIP完成音效
+    if game:GetService("SoundService") then
+        task.spawn(function()
+            local sound = Instance.new("Sound")
+            sound.SoundId = "rbxassetid://9118340725"  -- 完成音效
+            sound.Volume = 0.3
+            sound.Parent = game.Workspace
+            sound:Play()
+            game:GetService("Debris"):AddItem(sound, 3)
+        end)
+    end
+else
+    -- 普通用户流程
+    task.wait(0.5)
+    Title1:Destroy()
+    Title2:Destroy()
+    Title3:Destroy()
+    LoadState:Destroy()
+    if VIPTag then VIPTag:Destroy() end
+    
+    Tween:Create(Main, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    Tween:Create(LoadFillMain, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    Tween:Create(LoadMain, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+    task.wait(0.5)
+    Main:Destroy()
+    LoadMain:Destroy()
+    LoadFillMain:Destroy()
+    print("[系统] 普通用户加载完成")
 end
 
--- 添加鼠标悬停提示
-local tooltip = Instance.new("TextLabel")
-tooltip.Name = "Tooltip"
-tooltip.Parent = mainGui
-tooltip.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-tooltip.BackgroundTransparency = 0.3
-tooltip.BorderSizePixel = 0
-tooltip.Position = UDim2.new(0.98, -180, 0.01, 40)
-tooltip.AnchorPoint = Vector2.new(1, 0)
-tooltip.Size = UDim2.new(0, 175, 0, 30)
-tooltip.Visible = false
-tooltip.Font = Enum.Font.Gotham
-tooltip.Text = "用户: " .. playerName .. "\n状态: " .. (isVIP and "VIP用户" or "普通用户") .. "\n点击查看详情"
-tooltip.TextColor3 = Color3.fromRGB(200, 200, 200)
-tooltip.TextSize = 10
-tooltip.TextXAlignment = Enum.TextXAlignment.Left
-tooltip.TextYAlignment = Enum.TextYAlignment.Top
-tooltip.TextWrapped = true
+-- 输出用户状态信息
+print("=================================")
+print("迪脚本[BaiMo-Script] 加载系统")
+print("用户: " .. playerName)
+print("VIP状态: " .. (isVIP and "尊贵VIP用户" or "普通用户"))
+print("加载时间: " .. (isVIP and "加速完成" or "标准完成"))
+if isVIP then
+    print("自动关闭: 5秒后自动关闭界面")
+    print("操作提示: 可点击'立即跳过'按钮提前关闭")
+end
+print("=================================")
 
--- 鼠标悬停显示提示
-container.MouseEnter:Connect(function()
-    tooltip.Visible = true
-end)
-
-container.MouseLeave:Connect(function()
-    tooltip.Visible = false
-end)
-
--- 脚本启动时显示欢迎弹窗（延迟2秒）
-task.wait(2)
-showPopup()
-
--- 启动动画和时间更新
-task.spawn(vipPulseAnimation)
-task.spawn(updateTime)
-
--- 显示当前用户状态
-print("[VIP系统] 当前用户:", playerName)
-print("[VIP系统] VIP状态:", isVIP and "是VIP用户" or "非VIP用户")
-print("[VIP系统] 功能说明:")
-print("  • 点击时间显示区域: 查看VIP状态弹窗")
-print("  • 点击👥按钮: 显示/隐藏对局玩家检测列表")
-print("  • 弹窗尺寸优化: 更小更简洁")
-print("  • 玩家检测: 实时监控对局中的VIP用户")
+-- VIP用户额外提示
+if isVIP then
+    -- 在聊天框发送VIP提示
+    task.spawn(function()
+        task.wait(3)
+        local message = "🎉 VIP加载完成! 脚本界面将在倒计时结束后自动关闭。"
+        if game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui") then
+            -- 创建一个通知
+            local notification = Instance.new("ScreenGui")
+            notification.Name = "VIPNotification"
+            notification.Parent = game:GetService("Players").LocalPlayer.PlayerGui
+            
+            local frame = Instance.new("Frame")
+            frame.Size = UDim2.new(0, 300, 0, 50)
+            frame.Position = UDim2.new(0.5, -150, 0.1, 0)
+            frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+            frame.BackgroundTransparency = 0.3
+            frame.Parent = notification
+            
+            local corner = Instance.new("UICorner", frame)
+            corner.CornerRadius = UDim.new(0.1, 0)
+            
+            local stroke = Instance.new("UIStroke", frame)
+            stroke.Color = Color3.fromRGB(255, 215, 0)
+            stroke.Thickness = 2
+            
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, -20, 1, -10)
+            label.Position = UDim2.new(0, 10, 0, 5)
+            label.BackgroundTransparency = 1
+            label.Text = message
+            label.TextColor3 = Color3.fromRGB(255, 215, 0)
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 14
+            label.TextWrapped = true
+            label.Parent = frame
+            
+            -- 3秒后淡出
+            task.wait(3)
+            Tween:Create(frame, TweenInfo.new(1), {
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0.5, -150, 0, -100)
+            }):Play()
+            Tween:Create(stroke, TweenInfo.new(1), {
+                Transparency = 1
+            }):Play()
+            Tween:Create(label, TweenInfo.new(1), {
+                TextTransparency = 1
+            }):Play()
+            
+            task.wait(1)
+            notification:Destroy()
+        end
+    end)
+end
